@@ -1,0 +1,72 @@
+/* Dependencies */
+#include <Arduino.h>
+#include <ESP8266WiFi.h> //https://github.com/esp8266/Arduino Board Manager: http://arduino.esp8266.com/stable/package_esp8266com_index.json
+#include <ESP8266WiFiMulti.h>
+#include <ESP8266HTTPClient.h>
+#include <DHT.h> // https://github.com/adafruit/DHT-sensor-library
+
+ 
+#define USE_SERIAL Serial
+ESP8266WiFiMulti WiFiMulti;
+HTTPClient http;
+ 
+/* String variables */
+const char* WIFI_SSID = "SF";
+const char* WIFI_PASS = "18112005";
+float temp; float hum;
+ 
+DHT dht(D2, DHT22);
+ 
+void setup() {
+  USE_SERIAL.begin(115200);
+ 
+  USE_SERIAL.print("initializing");
+ 
+  //Connect Wifi
+  WiFiMulti.addAP(WIFI_SSID, WIFI_PASS);
+  USE_SERIAL.print("triggered connect");
+}
+ 
+void loop() {
+ 
+    // wait for WiFi connection
+    if((WiFiMulti.run() == WL_CONNECTED)) {
+ 
+      USE_SERIAL.print("reading-hygro");
+     
+      temp = dht.readTemperature();
+      hum = dht.readHumidity();
+ 
+      USE_SERIAL.print(temp);
+      USE_SERIAL.print(hum);
+ 
+       String buf;
+ 
+      String url  = "/api/";
+      url += String(temp, 4);
+      url += String("/");
+      url += String(hum, 4);
+      url += String("/123323");
+ 
+       USE_SERIAL.print(url);
+ 
+      http.begin("app.drinia.tech", 80, url);
+ 
+      int httpCode = http.GET();
+      if(httpCode) {
+         USE_SERIAL.print("codeon");
+          // file found at server
+          if(httpCode == 200) {
+              //logged temperature successfully
+              USE_SERIAL.print("successfully");
+          }
+      } else {
+          USE_SERIAL.print("[HTTP] GET... failed, no connection or no HTTP server\n");
+      }
+     
+    } else {
+       USE_SERIAL.print("NO WIFI!");
+    }
+ 
+    delay(500);
+}
